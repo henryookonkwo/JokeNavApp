@@ -1,26 +1,40 @@
-import React from "react";
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { MainStackNavigator, ContactStackNavigator } from "./StackNavigator";
-// import Ionicons from "react-native-vector-icons/Ionicons";
-// import Icon from "react-native-vector-icons/FontAwesome";
+import React, { createContext, useEffect, useState, useRef } from "react";
+import * as Notifications from "expo-notifications";
+import { registerForPushNotificationsAsync } from "../src/helpers/pushNotifications";
 
-const Tab = createBottomTabNavigator();
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+  }),
+});
 
-const BottomTabNavigator = () => {
-  return (
-    <Tab.Navigator>
-      <Tab.Screen
-        name="Home"
-        component={MainStackNavigator}
-        options={{ headerShown: false }}
-      />
-      <Tab.Screen
-        name="About"
-        component={ContactStackNavigator}
-        options={{ headerShown: false }}
-      />
-    </Tab.Navigator>
-  );
+const defaultState = {
+  token: "",
+  joke: "",
+  setJoke: undefined,
 };
 
-export default BottomTabNavigator;
+export const AppContext = createContext(defaultState);
+
+export const AppContextProvider = ({ children }) => {
+  const [expoPushToken, setExpoPushToken] = useState("");
+  const [joke, setJoke] = useState("");
+  const responseListener = useRef();
+
+  useEffect(async () => {
+    try {
+      const token = await registerForPushNotificationsAsync();
+      setExpoPushToken(token);
+    } catch (error) {
+      console.log(error);
+    }
+  }, []);
+
+  return (
+    <AppContext.Provider value={{ token: expoPushToken, setJoke, joke }}>
+      {children}
+    </AppContext.Provider>
+  );
+};
